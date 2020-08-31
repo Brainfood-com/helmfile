@@ -3,6 +3,7 @@ FROM golang:1.14.2-alpine3.11 as builder
 RUN apk add --no-cache make git
 WORKDIR /workspace/helmfile
 COPY . /workspace/helmfile
+RUN go mod vendor
 RUN make static-linux
 
 # -----------------------------------------------------------------------------
@@ -32,6 +33,15 @@ RUN curl --retry 3 --retry-connrefused -LO "https://storage.googleapis.com/kuber
     sha256sum kubectl | grep ${KUBECTL_SHA256} && \
     chmod +x kubectl && \
     mv kubectl /usr/local/bin/kubectl
+
+ENV KUSTOMIZE_VERSION=v3.8.1
+ENV KUSTOMIZE_SHA256=9d5b68f881ba89146678a0399469db24670cba4813e0299b47cb39a240006f37
+RUN curl --retry 3 --retry-connrefused -LO "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" && \
+    sha256sum "kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" | grep ${KUSTOMIZE_SHA256} && \
+    tar zxf "kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" && \
+    rm "kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" && \
+    chmod +x kustomize && \
+    mv kustomize /usr/local/bin/kustomize
 
 RUN ["helm", "init", "--client-only"]
 RUN helm plugin install https://github.com/databus23/helm-diff && \
